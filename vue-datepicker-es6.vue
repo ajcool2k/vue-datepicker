@@ -1,22 +1,4 @@
 <style scoped>
-.datepicker-overlay {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  z-index: 998;
-  top: 0;
-  left: 0;
-  overflow: hidden;
-  -webkit-animation: fadein 0.5s;
-  /* Safari, Chrome and Opera > 12.1 */
-  -moz-animation: fadein 0.5s;
-  /* Firefox < 16 */
-  -ms-animation: fadein 0.5s;
-  /* Internet Explorer */
-  -o-animation: fadein 0.5s;
-  /* Opera < 12.1 */
-  animation: fadein 0.5s;
-}
 @keyframes fadein {
   from {
     opacity: 0;
@@ -67,8 +49,8 @@
   font-size: 16px;
   font-family: 'Roboto';
   font-weight: 400;
-  position: fixed;
-  display: block;
+  position: relative;
+  display: none;
   width: 400px;
   max-width: 100%;
   z-index: 999;
@@ -316,7 +298,7 @@ table {
     <div class="datepickbox">
       <input type="text" title="input date" class="cov-datepicker" readonly="readonly" :placeholder="option.placeholder" v-model="date.time" :required="required" @click="showCheck" @focus="showCheck" :style="option.inputStyle ? option.inputStyle : {}" :class="option.inputClass ? option.inputClass : {}" />
     </div>
-    <div class="datepicker-overlay" v-if="showInfo.check" @click="dismiss($event)" v-bind:style="{'background' : option.overlayOpacity? 'rgba(0,0,0,'+option.overlayOpacity+')' : 'rgba(0,0,0,0.5)'}">
+
       <div class="cov-date-body" :style="{'background-color': option.color ? option.color.header : '#3f51b5'}">
         <div class="cov-date-monthly">
           <div class="cov-date-previous" @click="nextMonth('pre')">«</div>
@@ -368,7 +350,7 @@ table {
           <span @click="picked">{{option.buttons? option.buttons.ok : 'Ok'}}</span>
         </div>
       </div>
-    </div>
+
   </div>
 </template>
 <script>
@@ -394,6 +376,7 @@ export default {
             header: '#3f51b5',
             headerText: '#fff'
           },
+          parentClass: '',
           wrapperClass: '',
           inputClass: '',
           inputStyle: {
@@ -411,7 +394,6 @@ export default {
             ok: 'OK',
             cancel: 'Cancel'
           },
-          overlayOpacity: 0.5,
           dismissible: true
         }
       }
@@ -449,6 +431,8 @@ export default {
       return list
     }
     return {
+      body: null,
+
       hours: hours(),
       mins: mins(),
       showInfo: {
@@ -479,7 +463,23 @@ export default {
       selectedDays: []
     }
   },
+
+  watch: {
+    'showInfo.check': function (info) {
+      this.body.style.display = info === true ? 'block' : 'none'
+    }
+  },
+
+  mounted: function () {
+    let parent = document.querySelector('.' + this.option.parentClass)
+    this.body = document.querySelector('.cov-date-body')
+    parent.appendChild(this.body)
+  },
+
   methods: {
+    visible (v) {
+      this.showInfo.check = v === true ? true : false
+    },
     pad (n) {
       n = Math.floor(n)
       return n < 10 ? '0' + n : n
@@ -705,7 +705,7 @@ export default {
       this.checked.currentMoment = moment(this.checked.year + '-' + mo + '-' + this.checked.day)
       this.showDay(this.checked.currentMoment)
     },
-    showCheck () {
+    showCheck (ev) {
       if (this.date.time === '') {
         this.showDay()
       } else {
@@ -723,6 +723,7 @@ export default {
         }
       }
       this.showInfo.check = true
+      this.$emit('click', ev)
     },
     setTime (type, obj, list) {
       for (let item of list) {
@@ -745,12 +746,7 @@ export default {
       this.$emit('change', this.date.time)
     },
     dismiss (evt) {
-      if (evt.target.className === 'datepicker-overlay') {
-        if (this.option.dismissible === undefined || this.option.dismissible) {
-          this.showInfo.check = false
-          this.$emit('cancel')
-        }
-      }
+      this.$emit('cancel')
     },
     shiftActTime () {
       // shift activated time items to visible position.
